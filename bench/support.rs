@@ -21,11 +21,28 @@ impl fmt::Display for HttpMode {
     }
 }
 
+#[allow(unused)]
+#[derive(Clone, Copy, Debug)]
+pub enum Tls {
+    Enabled,
+    Disabled,
+}
+
+impl fmt::Display for Tls {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let value = match self {
+            Tls::Enabled => "tls",
+            Tls::Disabled => "no_tls",
+        };
+        f.write_str(value)
+    }
+}
+
 pub fn build_current_thread_runtime() -> tokio::runtime::Runtime {
     tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()
-        .unwrap()
+        .expect("Failed to build current-thread runtime")
 }
 
 pub fn build_multi_thread_runtime() -> tokio::runtime::Runtime {
@@ -33,5 +50,5 @@ pub fn build_multi_thread_runtime() -> tokio::runtime::Runtime {
         .worker_threads(4)
         .enable_all()
         .build()
-        .unwrap()
+        .expect("Failed to build multi-thread runtime")
 }

@@ -49,19 +49,19 @@ form = ["dep:serde", "dep:serde_urlencoded"]
 json = ["dep:serde", "dep:serde_json"]
 
 # Enable multipart/form-data support.
-multipart = ["dep:mime_guess", "dep:sync_wrapper"]
+multipart = ["dep:mime_guess", "sync_wrapper/futures"]
 
 # Enable hickory DNS resolver.
 hickory-dns = ["dep:hickory-resolver"]
 
 # Enable streaming support.
-stream = ["tokio/fs", "dep:tokio-util", "dep:sync_wrapper"]
+stream = ["tokio/fs", "dep:tokio-util", "sync_wrapper/futures"]
 
 # Enable SOCKS proxy support.
 socks = ["dep:tokio-socks"]
 
 # Enable WebSocket support.
-ws = ["dep:tokio-tungstenite"]
+ws = ["tokio-tungstenite/handshake"]
 
 # Enable webpki-roots for TLS certificate validation.
 webpki-roots = ["dep:webpki-root-certs"]
@@ -70,7 +70,7 @@ webpki-roots = ["dep:webpki-root-certs"]
 system-proxy = ["dep:system-configuration", "dep:windows-registry"]
 
 # Enable tracing logging.
-tracing = ["http2/tracing", "dep:tracing"]
+tracing = ["http2/tracing", "tracing/std"]
 
 # Symbol prefixing for BoringSSL's libcrypto and libssl to avoid linker conflicts
 # when OpenSSL versions are present in the same process space.
@@ -125,7 +125,7 @@ encoding_rs = { version = "0.8", optional = true }
 mime = { version = "0.3.17", optional = true }
 
 ## sync wrapper
-sync_wrapper = { version = "1.0.2", features = ["futures"], optional = true }
+sync_wrapper = { version = "1.0.2", optional = true }
 
 ## webpki root certs
 webpki-root-certs = { version = "1.0.6", optional = true }
@@ -143,17 +143,13 @@ tokio-util = { version = "0.7.18", default-features = false, optional = true }
 tokio-socks = { version = "0.5.2", optional = true }
 
 ## websocket
-tokio-tungstenite = { version = "0.28.0", default-features = false, features = [
-    "handshake",
-], optional = true }
+tokio-tungstenite = { version = "0.28.0", default-features = false, optional = true }
 
 ## hickory-dns
 hickory-resolver = { version = "0.25.2", optional = true }
 
 ## tracing
-tracing = { version = "0.1", default-features = false, features = [
-    "std",
-], optional = true }
+tracing = { version = "0.1", default-features = false,optional = true }
 
 ## windows system proxy
 [target.'cfg(windows)'.dependencies]
@@ -193,20 +189,32 @@ tracing-subscriber = "0.3.20"
 pretty_env_logger = "0.5"
 
 # for benchmarks
-criterion = "0.8.2"
-reqwest = { version = "0.13", default-features = false, features = ["rustls"] }
+criterion = { version = "0.8.2", features = ["async_tokio"] }
+reqwest = { version = "0.13", default-features = false, features = ["rustls", "stream", "http2"] }
 
 [[bench]]
 name = "http1"
 path = "bench/http1.rs"
 harness = false
-required-features = ["stream", "reqwest/stream"]
+required-features = ["stream"]
 
 [[bench]]
 name = "http2"
 path = "bench/http2.rs"
 harness = false
-required-features = ["stream", "reqwest/stream", "reqwest/http2"]
+required-features = ["stream"]
+
+[[bench]]
+name = "http1_over_tls"
+path = "bench/http1_over_tls.rs"
+harness = false
+required-features = ["stream"]
+
+[[bench]]
+name = "http2_over_tls"
+path = "bench/http2_over_tls.rs"
+harness = false
+required-features = ["stream"]
 
 [[test]]
 name = "cookie"
