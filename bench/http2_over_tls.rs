@@ -13,14 +13,8 @@ const ADDR: &str = "127.0.0.1:6929";
 const NUM_REQUESTS_TO_SEND: usize = 500;
 
 #[inline]
-fn bench_server_single_thread(c: &mut Criterion) {
-    bench::bench_server_single_thread(c, TLS_MODE, HTTP_MODE, ADDR, NUM_REQUESTS_TO_SEND)
-        .expect("Failed to run single-threaded HTTP/2 over TLS benchmark server")
-}
-
-#[inline]
-fn bench_server_multi_thread(c: &mut Criterion) {
-    bench::bench_server_multi_thread(c, TLS_MODE, HTTP_MODE, ADDR, NUM_REQUESTS_TO_SEND)
+fn bench(c: &mut Criterion) {
+    bench::bench(c, TLS_MODE, HTTP_MODE, ADDR, NUM_REQUESTS_TO_SEND)
         .expect("Failed to run multi-threaded HTTP/2 over TLS benchmark server")
 }
 
@@ -29,8 +23,6 @@ criterion_group!(
     config = Criterion::default()
         .sample_size(10)
         .warm_up_time(Duration::from_secs(3));
-    targets =
-        bench_server_single_thread,
-        bench_server_multi_thread
+    targets = bench
 );
 criterion_main!(benches);

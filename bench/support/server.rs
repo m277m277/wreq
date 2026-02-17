@@ -20,7 +20,7 @@ use tokio::{
 };
 use tokio_boring2::SslStream;
 
-use super::{Tls, build_current_thread_runtime, build_multi_thread_runtime};
+use super::{Tls, build_multi_thread_runtime};
 
 pub struct Server {
     addr: &'static str,
@@ -120,23 +120,14 @@ impl Handle {
     }
 }
 
-pub fn with_server<F>(
-    addr: &'static str,
-    multi_thread: bool,
-    tls: Tls,
-    f: F,
-) -> Result<(), Box<dyn Error>>
+pub fn with_server<F>(addr: &'static str, tls: Tls, f: F) -> Result<(), Box<dyn Error>>
 where
     F: FnOnce() -> Result<(), Box<dyn Error>>,
 {
     let (shutdown_tx, shutdown_rx) = oneshot::channel();
     let join = std::thread::spawn(move || {
         let server = Arc::new(Server::new(addr, tls).expect("Failed to create server"));
-        let rt = if multi_thread {
-            build_multi_thread_runtime()
-        } else {
-            build_current_thread_runtime()
-        };
+        let rt = build_multi_thread_runtime();
         rt.block_on(server.clone().run(shutdown_rx))
             .expect("Failed to run server with shutdown");
     });

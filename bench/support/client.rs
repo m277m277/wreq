@@ -191,13 +191,12 @@ fn crate_name<T: ?Sized>() -> &'static str {
 }
 
 #[allow(clippy::too_many_arguments)]
-pub fn bench_both_clients(
+pub fn bench_clients(
     group: &mut BenchmarkGroup<'_, WallTime>,
     rt: &Runtime,
     addr: &str,
     mode: HttpMode,
     tls: Tls,
-    label_prefix: &str,
     num_requests: usize,
     concurrent_limit: usize,
     body: &'static [u8],
@@ -205,15 +204,21 @@ pub fn bench_both_clients(
     let url = format!("{tls}://{addr}");
     let body_kb = body.len() / 1024;
 
-    let make_benchmark_label = |client: &str, stream: bool| {
+    fn make_benchmark_label<T: ?Sized>(
+        stream: bool,
+        tls: Tls,
+        mode: HttpMode,
+        body_kb: usize,
+    ) -> String {
+        let client = crate_name::<T>();
         let body_type = if stream { "stream" } else { "full" };
-        format!("{tls}_{mode}_{client}_{label_prefix}_{body_type}_{body_kb}KB")
-    };
+        format!("{tls}_{mode}_{client}_{body_type}_{body_kb}KB")
+    }
 
     for stream in [false, true] {
         let client = create_wreq_client(mode, tls)?;
         group.bench_function(
-            make_benchmark_label(crate_name::<wreq::Client>(), stream),
+            make_benchmark_label::<wreq::Client>(stream, tls, mode, body_kb),
             |b| {
                 b.to_async(rt).iter(|| {
                     wreq_requests_concurrent(
@@ -231,7 +236,7 @@ pub fn bench_both_clients(
 
         let client = create_reqwest_client(mode, tls)?;
         group.bench_function(
-            make_benchmark_label(crate_name::<reqwest::Client>(), stream),
+            make_benchmark_label::<reqwest::Client>(stream, tls, mode, body_kb),
             |b| {
                 b.to_async(rt).iter(|| {
                     reqwest_requests_concurrent(

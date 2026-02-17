@@ -3,8 +3,8 @@ use std::error::Error;
 use criterion::{BenchmarkGroup, Criterion, measurement::WallTime};
 
 use crate::support::{
-    HttpMode, Tls, build_current_thread_runtime, build_multi_thread_runtime,
-    client::bench_both_clients, server::with_server,
+    HttpMode, Tls, build_current_thread_runtime, build_multi_thread_runtime, client::bench_clients,
+    server::with_server,
 };
 
 pub const CONCURRENT_LIMIT: usize = 150;
@@ -25,18 +25,16 @@ pub fn run_benches(
     addr: &'static str,
     tls_mode: Tls,
     http_mode: HttpMode,
-    label_prefix: &str,
     num_requests: usize,
 ) -> Result<(), Box<dyn Error>> {
     let runtime = rt();
     for body in BODY_CASES {
-        bench_both_clients(
+        bench_clients(
             group,
             &runtime,
             addr,
             http_mode,
             tls_mode,
-            label_prefix,
             num_requests,
             CONCURRENT_LIMIT,
             body,
@@ -46,79 +44,39 @@ pub fn run_benches(
     Ok(())
 }
 
-pub fn bench_server_single_thread(
+pub fn bench(
     c: &mut Criterion,
     tls_mode: Tls,
     http_mode: HttpMode,
     addr: &'static str,
     num_requests: usize,
 ) -> Result<(), Box<dyn Error>> {
-    let mut group = c.benchmark_group("server_single_thread");
-    group.sampling_mode(criterion::SamplingMode::Flat);
-
-    with_server(addr, false, tls_mode, || {
+    with_server(addr, tls_mode, || {
         // single-threaded client
+        let mut group = c.benchmark_group(CURRENT_THREAD_LABEL);
         run_benches(
             &mut group,
             build_current_thread_runtime,
             addr,
             tls_mode,
             http_mode,
-            CURRENT_THREAD_LABEL,
             num_requests,
         )?;
+        group.finish();
 
         // multi-threaded client
+        let mut group = c.benchmark_group(MULTI_THREAD_LABEL);
         run_benches(
             &mut group,
             build_multi_thread_runtime,
             addr,
             tls_mode,
             http_mode,
-            MULTI_THREAD_LABEL,
-            num_requests,
-        )
-    })?;
-
-    group.finish();
-
-    Ok(())
-}
-
-pub fn bench_server_multi_thread(
-    c: &mut Criterion,
-    tls_mode: Tls,
-    http_mode: HttpMode,
-    addr: &'static str,
-    num_requests: usize,
-) -> Result<(), Box<dyn Error>> {
-    let mut group = c.benchmark_group("server_multi_thread");
-    group.sampling_mode(criterion::SamplingMode::Flat);
-
-    with_server(addr, true, tls_mode, || {
-        // single-threaded client
-        run_benches(
-            &mut group,
-            build_current_thread_runtime,
-            addr,
-            tls_mode,
-            http_mode,
-            CURRENT_THREAD_LABEL,
             num_requests,
         )?;
-
-        // multi-threaded client
-        run_benches(
-            &mut group,
-            build_multi_thread_runtime,
-            addr,
-            tls_mode,
-            http_mode,
-            MULTI_THREAD_LABEL,
-            num_requests,
-        )
+        group.finish();
+        Ok(())
     })?;
 
-    group.finish();
     Ok(())
 }
