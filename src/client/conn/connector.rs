@@ -397,7 +397,8 @@ impl ConnectorService {
                         };
 
                         // Build an HTTPS connector.
-                        let mut connector = self.build_https_connector(req.extra())?;
+                        let mut connector =
+                            self.build_https_connector(uri.is_https(), req.extra())?;
 
                         // Wrap the established SOCKS connection with TLS if needed.
                         let io = connector.call(EstablishedConn::new(conn, req)).await?;
