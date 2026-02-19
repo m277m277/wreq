@@ -5,12 +5,12 @@ use std::{
 
 use http::{Request, Uri};
 use pin_project_lite::pin_project;
-use tower::util::Oneshot;
+use tower::util::{Either, Oneshot};
 
-use super::{Body, ClientRef, Response};
+use super::{Body, BoxedClientService, ClientService, Response};
 use crate::{Error, ext::RequestUri};
 
-type ResponseFuture = Oneshot<ClientRef, Request<Body>>;
+type ResponseFuture = Oneshot<Either<ClientService, BoxedClientService>, Request<Body>>;
 
 pin_project! {
     /// [`Pending`] is a future representing the state of an HTTP request, which may be either
