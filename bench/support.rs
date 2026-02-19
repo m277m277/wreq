@@ -6,16 +6,16 @@ use std::fmt;
 
 #[allow(unused)]
 #[derive(Clone, Copy, Debug)]
-pub enum HttpMode {
+pub enum HttpVersion {
     Http1,
     Http2,
 }
 
-impl fmt::Display for HttpMode {
+impl fmt::Display for HttpVersion {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let value = match self {
-            HttpMode::Http1 => "http1",
-            HttpMode::Http2 => "http2",
+            HttpVersion::Http1 => "h1",
+            HttpVersion::Http2 => "h2",
         };
         f.write_str(value)
     }

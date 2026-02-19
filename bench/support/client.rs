@@ -4,11 +4,11 @@ use bytes::Bytes;
 use criterion::{BenchmarkGroup, measurement::WallTime};
 use tokio::{runtime::Runtime, sync::Semaphore};
 
-use super::{HttpMode, Tls};
+use super::{HttpVersion, Tls};
 
 const STREAM_CHUNK_SIZE: usize = 256 * 1024;
 
-fn create_wreq_client(mode: HttpMode, tls: Tls) -> Result<wreq::Client, Box<dyn Error>> {
+fn create_wreq_client(tls: Tls, http_version: HttpVersion) -> Result<wreq::Client, Box<dyn Error>> {
     let builder = wreq::Client::builder()
         .no_proxy()
         .redirect(wreq::redirect::Policy::none());
@@ -18,15 +18,18 @@ fn create_wreq_client(mode: HttpMode, tls: Tls) -> Result<wreq::Client, Box<dyn 
         Tls::Disabled => builder,
     };
 
-    let builder = match mode {
-        HttpMode::Http1 => builder.http1_only(),
-        HttpMode::Http2 => builder.http2_only(),
+    let builder = match http_version {
+        HttpVersion::Http1 => builder.http1_only(),
+        HttpVersion::Http2 => builder.http2_only(),
     };
 
     Ok(builder.build()?)
 }
 
-fn create_reqwest_client(mode: HttpMode, tls: Tls) -> Result<reqwest::Client, Box<dyn Error>> {
+fn create_reqwest_client(
+    tls: Tls,
+    http_version: HttpVersion,
+) -> Result<reqwest::Client, Box<dyn Error>> {
     let builder = reqwest::Client::builder()
         .no_proxy()
         .redirect(reqwest::redirect::Policy::none());
@@ -36,9 +39,9 @@ fn create_reqwest_client(mode: HttpMode, tls: Tls) -> Result<reqwest::Client, Bo
         Tls::Disabled => builder,
     };
 
-    let builder = match mode {
-        HttpMode::Http1 => builder.http1_only(),
-        HttpMode::Http2 => builder.http2_prior_knowledge(),
+    let builder = match http_version {
+        HttpVersion::Http1 => builder.http1_only(),
+        HttpVersion::Http2 => builder.http2_prior_knowledge(),
     };
 
     Ok(builder.build()?)
@@ -195,23 +198,23 @@ pub fn bench_clients(
     group: &mut BenchmarkGroup<'_, WallTime>,
     rt: fn() -> Runtime,
     addr: &str,
-    mode: HttpMode,
     tls: Tls,
+    http_version: HttpVersion,
     num_requests: usize,
     concurrent_limit: usize,
     body: &'static [u8],
 ) -> Result<(), Box<dyn Error>> {
     let url = format!("{tls}://{addr}");
 
-    fn make_benchmark_label<T: ?Sized>(stream: bool, mode: HttpMode) -> String {
+    fn make_benchmark_label<T: ?Sized>(stream: bool) -> String {
         let client = crate_name::<T>();
         let body_type = if stream { "stream" } else { "full" };
-        format!("{mode}_{client}_{body_type}")
+        format!("{body_type}/{client}")
     }
 
     for stream in [false, true] {
-        let client = create_wreq_client(mode, tls)?;
-        group.bench_function(make_benchmark_label::<wreq::Client>(stream, mode), |b| {
+        let client = create_wreq_client(tls, http_version)?;
+        group.bench_function(make_benchmark_label::<wreq::Client>(stream), |b| {
             b.to_async(rt()).iter(|| {
                 wreq_requests_concurrent(
                     &client,
@@ -225,8 +228,8 @@ pub fn bench_clients(
         });
         ::std::mem::drop(client);
 
-        let client = create_reqwest_client(mode, tls)?;
-        group.bench_function(make_benchmark_label::<reqwest::Client>(stream, mode), |b| {
+        let client = create_reqwest_client(tls, http_version)?;
+        group.bench_function(make_benchmark_label::<reqwest::Client>(stream), |b| {
             b.to_async(rt()).iter(|| {
                 reqwest_requests_concurrent(
                     &client,

@@ -3,7 +3,7 @@ use std::error::Error;
 use criterion::Criterion;
 
 use crate::support::{
-    HttpMode, Tls, client::bench_clients, current_thread_runtime, multi_thread_runtime,
+    HttpVersion, Tls, client::bench_clients, current_thread_runtime, multi_thread_runtime,
     server::with_server,
 };
 
@@ -21,17 +21,24 @@ pub const BODY_CASES: &[&[u8]] = &[
 
 pub fn bench(
     c: &mut Criterion,
-    tls_mode: Tls,
-    http_mode: HttpMode,
+    tls: Tls,
+    http_version: HttpVersion,
     addr: &'static str,
     num_requests: usize,
 ) -> Result<(), Box<dyn Error>> {
+    const OS: &str = std::env::consts::OS;
+    const ARCH: &str = std::env::consts::ARCH;
+
+    let cpuid = raw_cpuid::CpuId::new();
+    let cpu_brand = cpuid.get_processor_brand_string();
+    let cpu_model = cpu_brand.as_ref().map_or("n/a", |pbs| pbs.as_str());
+
     for &concurrent_limit in CONCURRENT_CASES {
         for body in BODY_CASES {
-            with_server(addr, tls_mode, || {
+            with_server(addr, tls, || {
                 // single-threaded client
                 let mut group = c.benchmark_group(format!(
-                    "{CURRENT_THREAD_LABEL}/{tls_mode}/{concurrent_limit}/{}KB",
+                    "{cpu_model}/{OS}_{ARCH}/{CURRENT_THREAD_LABEL}/{tls}/{http_version}/{concurrent_limit}/{}KB",
                     body.len() / 1024,
                 ));
 
@@ -39,8 +46,8 @@ pub fn bench(
                     &mut group,
                     current_thread_runtime,
                     addr,
-                    http_mode,
-                    tls_mode,
+                    tls,
+                    http_version,
                     num_requests,
                     concurrent_limit,
                     body,
@@ -49,18 +56,18 @@ pub fn bench(
                 Ok(())
             })?;
 
-            with_server(addr, tls_mode, || {
+            with_server(addr, tls, || {
                 // multi-threaded client
                 let mut group = c.benchmark_group(format!(
-                    "{MULTI_THREAD_LABEL}/{tls_mode}/{concurrent_limit}/{}KB",
+                    "{cpu_model}/{OS}_{ARCH}/{MULTI_THREAD_LABEL}/{tls}/{http_version}/{concurrent_limit}/{}KB",
                     body.len() / 1024,
                 ));
                 bench_clients(
                     &mut group,
                     multi_thread_runtime,
                     addr,
-                    http_mode,
-                    tls_mode,
+                    tls,
+                    http_version,
                     num_requests,
                     concurrent_limit,
                     body,
