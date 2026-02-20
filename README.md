@@ -67,7 +67,7 @@ Due to the complexity of **TLS** encryption and the widespread adoption of **HTT
 
 - **Device Emulation**
 
-Most browser device models share identical **TLS** and **HTTP/2** configurations, differing only in the **User-Agent** string. Common browser device emulation templates are maintained in [wreq-util](https://github.com/0x676e67/wreq-util), a companion utility crate.
+**TLS** and **HTTP/2** fingerprints are often identical across various browser models because these underlying protocols evolve slower than browser release cycles. **100+ browser device emulation profiles** are maintained in [wreq-util](https://github.com/0x676e67/wreq-util).
 
 ## Building
 
