@@ -6,7 +6,10 @@ use wreq::{
     http2::{
         Http2Options, PseudoId, PseudoOrder, SettingId, SettingsOrder, StreamDependency, StreamId,
     },
-    tls::{AlpnProtocol, CertificateCompressionAlgorithm, ExtensionType, TlsOptions, TlsVersion},
+    tls::{
+        AlpnProtocol, CertificateCompressionAlgorithm, ExtensionType, KeyShare, TlsOptions,
+        TlsVersion,
+    },
 };
 
 macro_rules! join {
@@ -82,7 +85,11 @@ fn tls_options_template() -> TlsOptions {
         .enable_signed_cert_timestamps(true)
         .min_tls_version(TlsVersion::TLS_1_2)
         .max_tls_version(TlsVersion::TLS_1_3)
-        .key_shares_limit(3)
+        .key_shares(vec![
+            KeyShare::X25519_MLKEM768,
+            KeyShare::X25519,
+            KeyShare::P256,
+        ])
         .preserve_tls13_cipher_list(true)
         .aes_hw_override(true)
         .random_aes_hw_override(true)
@@ -96,6 +103,7 @@ fn tls_options_template() -> TlsOptions {
             ExtensionType::APPLICATION_LAYER_PROTOCOL_NEGOTIATION,
             ExtensionType::STATUS_REQUEST,
             ExtensionType::DELEGATED_CREDENTIAL,
+            ExtensionType::CERTIFICATE_TIMESTAMP,
             ExtensionType::KEY_SHARE,
             ExtensionType::SUPPORTED_VERSIONS,
             ExtensionType::SIGNATURE_ALGORITHMS,
@@ -103,6 +111,7 @@ fn tls_options_template() -> TlsOptions {
             ExtensionType::RECORD_SIZE_LIMIT,
             ExtensionType::CERT_COMPRESSION,
             ExtensionType::ENCRYPTED_CLIENT_HELLO,
+            ExtensionType::PADDING,
         ])
         .build()
 }
