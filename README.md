@@ -71,7 +71,7 @@ Due to the complexity of **TLS** encryption and the widespread adoption of **HTT
 
 ## Building
 
-Compiling alongside **openssl-sys** can cause symbol conflicts with **boring-sys** that lead to [link failures](https://github.com/cloudflare/boring/issues/197), and on **Linux** and **Android** this can be avoided by enabling the **`prefix-symbols`** feature.
+Compiling alongside **openssl-sys** can cause symbol conflicts with **boringssl** that lead to [link failures](https://github.com/cloudflare/boring/issues/197), and on **Linux** and **Android** this can be avoided by enabling the **`prefix-symbols`** feature.
 
 Install [BoringSSL build dependencies](https://github.com/google/boringssl/blob/master/BUILDING.md#build-prerequisites) and build with:
 
